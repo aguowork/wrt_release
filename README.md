@@ -97,7 +97,7 @@ GitHub Actions 的手动构建也提供 `add_fragments` 与 `remove_fragments` �
 默认片段由 `compilecfg/*.ini` 的 `CONFIG_FRAGMENTS` 指定：
 
 - 所有设备默认包含 `proxy`。
-- IPQ60xx / IPQ807x 设备默认额外包含 `nss`。
+- AX6（IPQ807x）设备默认额外包含 `nss`。
 - 只有已显式选择 Dockerman 或明确适合运行 Docker 的设备默认包含 `docker_deps`，用于预置手动安装 Docker 所需的运行依赖，避免 NAND 空间紧张或无 USB 设备被默认加入 Docker 依赖。
 
 `ADD_CONFIG_FRAGMENTS` 会在默认片段后追加，`REMOVE_CONFIG_FRAGMENTS` 会从最终片段中移除对应配置片段。移除只表示“不追加这个 fragment”，不会反向修改设备 `.config` 或 `compile_base.config` 中已经写明的配置。

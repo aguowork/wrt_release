@@ -63,13 +63,11 @@ update_default_lan_addr() {
 
 remove_something_nss_kmod() {
     local ipq_mk_path="$BUILD_DIR/target/linux/qualcommax/Makefile"
-    local target_mks=("$BUILD_DIR/target/linux/qualcommax/ipq60xx/target.mk" "$BUILD_DIR/target/linux/qualcommax/ipq807x/target.mk")
+    local ipq807_target_mk="$BUILD_DIR/target/linux/qualcommax/ipq807x/target.mk"
 
-    for target_mk in "${target_mks[@]}"; do
-        if [ -f "$target_mk" ]; then
-            sed -i 's/kmod-qca-nss-crypto//g' "$target_mk"
-        fi
-    done
+    if [ -f "$ipq807_target_mk" ]; then
+        sed -i 's/kmod-qca-nss-crypto//g' "$ipq807_target_mk"
+    fi
 
     if [ -f "$ipq_mk_path" ]; then
         sed -i '/kmod-qca-nss-drv-eogremgr/d' "$ipq_mk_path"
@@ -132,7 +130,6 @@ update_ath11k_fw() {
     local makefile="$BUILD_DIR/package/firmware/ath11k-firmware/Makefile"
     local new_mk="$BASE_PATH/patches/ath11k_fw.mk"
     local url="https://raw.githubusercontent.com/VIKINGYFY/immortalwrt/refs/heads/main/package/firmware/ath11k-firmware/Makefile"
-    local ipq60_target="$BUILD_DIR/target/linux/qualcommax/ipq60xx/target.mk"
     local ipq807_target="$BUILD_DIR/target/linux/qualcommax/ipq807x/target.mk"
 
     if [ -d "$(dirname "$makefile")" ]; then
@@ -147,16 +144,9 @@ update_ath11k_fw() {
         fi
         mv -f "$new_mk" "$makefile"
 
-        if [ -f "$ipq60_target" ]; then
-            sed -i 's/ath11k-firmware-ipq6018\([^-[:alnum:]_]\|$\)/ath11k-firmware-ipq6018-ddwrt\1/g' "$ipq60_target"
-        fi
-
         if [ -f "$ipq807_target" ]; then
             sed -i 's/ath11k-firmware-ipq8074\([^-[:alnum:]_]\|$\)/ath11k-firmware-ipq8074-ddwrt\1/g' "$ipq807_target"
-        fi
-
-        if [ -f "$ipq60_target" ] || [ -f "$ipq807_target" ]; then
-            echo "已同步 ipq60xx/ipq807x ath11k 固件依赖为 ddwrt 包名。"
+            echo "已同步 ipq807x ath11k 固件依赖为 ddwrt 包名。"
         fi
     fi
 }
