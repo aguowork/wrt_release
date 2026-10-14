@@ -82,7 +82,6 @@ stage_pre_install_source_fixes() {
     remove_something_nss_kmod
     update_affinity_script
     update_ath11k_fw
-    # fix_mkpkg_format_invalid
     change_cpuusage
     update_tcping
     set_custom_task
@@ -91,17 +90,12 @@ stage_pre_install_source_fixes() {
     set_build_signature
     update_nss_diag
     update_menu_location
-    fix_compile_coremark
     update_dnsmasq_conf
     add_backup_info_to_sysupgrade
-    update_mosdns_deconfig
-    fix_quickstart
     update_oaf_deconfig
     add_timecontrol
     add_quickfile
-    update_lucky
     fix_rust_compile_error
-    update_smartdns
     update_mwan3_fw4
     update_diskman
     update_dockerman
@@ -111,7 +105,6 @@ stage_pre_install_source_fixes() {
     update_nginx_ubus_module
     check_default_settings
     install_opkg_distfeeds
-    fix_easytier_mk
     remove_attendedsysupgrade
     fix_kconfig_recursive_dependency
 }
@@ -124,19 +117,15 @@ stage_feeds_install() {
 stage_post_install_package_fixes() {
     # 这里处理已安装到 package/feeds/* 的包和最终一致性检查。
     verify_custom_feed_installed_paths
+    verify_adguardhome_installed_paths
     docker_stack_sync_nftables_compat "$BUILD_DIR" "0"
     fix_cups_libcups_avahi_depends
-    fix_easytier_lua
-    update_adguardhome
     update_script_priority
     update_geoip
     fix_openssl_ktls
     fix_opkg_check
     fix_netfilter_kmod_clash
     fix_quectel_cm
-    install_pbr_cmcc
-    fix_pbr_ip_forward
-    # apply_hash_fixes
 }
 
 main() {

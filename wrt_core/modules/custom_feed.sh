@@ -159,18 +159,17 @@ install_custom_feed() {
         xray-core xray-plugin dns2tcp dns2socks haproxy hysteria \
         naiveproxy shadowsocks-rust sing-box v2ray-core v2ray-geodata geoview v2ray-plugin \
         tuic-client chinadns-ng ipt2socks tcping trojan-plus simple-obfs shadowsocksr-libev \
-        v2dat adguardhome luci-app-adguardhome ddns-go \
-        luci-app-ddns-go taskd luci-lib-xterm luci-lib-taskd luci-app-store quickstart \
-        luci-app-quickstart luci-app-istorex luci-app-cloudflarespeedtest netdata luci-app-netdata \
-        lucky luci-app-lucky luci-app-openclash luci-app-homeproxy luci-app-amlogic \
-        oaf open-app-filter luci-app-oaf easytier luci-app-easytier \
+        v2dat ddns-go \
+        luci-app-ddns-go luci-app-cloudflarespeedtest netdata luci-app-netdata \
+        luci-app-openclash luci-app-homeproxy luci-app-amlogic \
+        oaf open-app-filter luci-app-oaf \
         msd_lite luci-app-msd_lite cups luci-app-cupsd
     )
     local required_feed_dirs=(
-        cups tcping v2ray-geodata luci-lib-taskd luci-app-openclash
-        luci-app-quickstart luci-app-store luci-app-homeproxy luci-app-mosdns
+        cups tcping v2ray-geodata luci-app-openclash
+        luci-app-homeproxy
         luci-app-passwall nikki luci-app-nikki mihomo-meta
-        open-app-filter luci-app-oaf lucky luci-app-lucky luci-app-easytier
+        open-app-filter luci-app-oaf
         luci-app-emmc-health
     )
     local custom_feed_sources=()
@@ -189,10 +188,18 @@ install_custom_feed() {
         base_custom_feed_packages+=(fullconenat)
     fi
 
+    # 按程序和 LuCI 分别补缺，保留上游已有的 AdGuard Home 包。
+    if [ -f "$BUILD_DIR/feeds/packages/net/adguardhome/Makefile" ]; then
+        echo "AdGuard Home 程序：使用上游 packages feed。"
+    else
+        echo "AdGuard Home 程序：上游缺失，使用 kenzok8/small-package。"
+        base_custom_feed_packages+=(adguardhome)
+        required_feed_dirs+=(adguardhome)
+    fi
+
     # 统一从外部仓库同步指定包，避免分散维护 feeds.conf。
     custom_feed_sources=(
         "kenzok8/small-package|https://github.com/kenzok8/small-package.git||${base_custom_feed_packages[*]}"
-        "sbwml/luci-app-mosdns|https://github.com/sbwml/luci-app-mosdns.git|v5|mosdns luci-app-mosdns"
         "Openwrt-Passwall/openwrt-passwall|https://github.com/Openwrt-Passwall/openwrt-passwall.git|main|luci-app-passwall"
         "nikkinikki-org/OpenWrt-nikki|https://github.com/nikkinikki-org/OpenWrt-nikki.git|main|nikki luci-app-nikki mihomo-meta"
     )
@@ -213,6 +220,27 @@ install_custom_feed() {
         read -r -a repo_package_array <<< "$repo_packages"
 
         if ! sync_sparse_packages_to_feed_dir "$repo_url" "$repo_branch" "$custom_feed_dir" "$repo_label" "${repo_package_array[@]}"; then
+            rm -rf "$custom_feed_dir"
+            return 1
+        fi
+    done
+
+    if [ -f "$BUILD_DIR/feeds/luci/applications/luci-app-adguardhome/Makefile" ]; then
+        echo "AdGuard Home LuCI：使用上游 luci feed。"
+    else
+        echo "AdGuard Home LuCI：上游缺失，使用 ZqinKing/luci-app-adguardhome。"
+        if ! sync_repo_root_package_to_feed_dir "https://github.com/ZqinKing/luci-app-adguardhome.git" "" "$custom_feed_dir" "ZqinKing/luci-app-adguardhome" "luci-app-adguardhome"; then
+            rm -rf "$custom_feed_dir"
+            return 1
+        fi
+        required_feed_dirs+=(luci-app-adguardhome)
+    fi
+
+    # 补充包必须在 feed 建索引前就绪，避免仅有空目录也通过同步检查。
+    local adguard_package
+    for adguard_package in adguardhome luci-app-adguardhome; do
+        if [ -d "$custom_feed_dir/$adguard_package" ] && [ ! -f "$custom_feed_dir/$adguard_package/Makefile" ]; then
+            echo "错误：自定义 $adguard_package 缺少 Makefile" >&2
             rm -rf "$custom_feed_dir"
             return 1
         fi

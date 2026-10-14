@@ -94,6 +94,8 @@ GitHub Actions 的手动构建也提供 `add_fragments` 与 `remove_fragments` �
 2. `compile_base.config`
 3. `wrt_core/deconfig/fragments/<name>.config` 中的有效配置片段
 
+设备配置保留原有设置；同名选项由后追加的公共配置或片段覆盖，最终再由 `make defconfig` 解析依赖。
+
 默认片段由 `compilecfg/*.ini` 的 `CONFIG_FRAGMENTS` 指定：
 
 - 所有设备默认包含 `proxy`。
@@ -101,6 +103,10 @@ GitHub Actions 的手动构建也提供 `add_fragments` 与 `remove_fragments` �
 - 只有已显式选择 Dockerman 或明确适合运行 Docker 的设备默认包含 `docker_deps`，用于预置手动安装 Docker 所需的运行依赖，避免 NAND 空间紧张或无 USB 设备被默认加入 Docker 依赖。
 
 `ADD_CONFIG_FRAGMENTS` 会在默认片段后追加，`REMOVE_CONFIG_FRAGMENTS` 会从最终片段中移除对应配置片段。移除只表示“不追加这个 fragment”，不会反向修改设备 `.config` 或 `compile_base.config` 中已经写明的配置。
+
+公共配置的可用选项取决于设备源码分支、上游 feeds 和 `custom_feed`。不存在的 Kconfig 选项通常会被 `make defconfig` 丢弃，并不直接导致构建失败，但对应功能不会启用；缺失依赖、源码不兼容和下载失败则可能中断构建。可运行 `./build.sh redmi_ax6000_immwrt debug`，检查生成的 `imm-mt798x/.config`；`config_preview` 只展示组合顺序，不验证软件包是否可用。
+
+当前同步流程会修正 aguowork/wechatpush 的主机与磁盘信息检测选项名，使其与公共配置及上游依赖声明一致。
 
 ## 7. 三方插件
 
@@ -111,6 +117,16 @@ https://github.com/kenzok8/small-package.git
 ```
 
 相关增删和同步逻辑位于 `wrt_core/update.sh` 编排的 `wrt_core/modules/` 静态阶段。配置片段只选择 Kconfig，不负责 clone 仓库、修改 feeds 或安装 feeds。
+
+AdGuard Home 按程序与 LuCI 插件分别采用“上游优先、缺失补充”：构建时检查上游对应软件包的 `Makefile`，已有的直接使用；程序缺失时从 `kenzok8/small-package` 补充 `adguardhome`，LuCI 插件缺失时从 `ZqinKing/luci-app-adguardhome` 补充。补充源码在 feed 建索引前准备，安装后检查所选来源的包路径。
+
+按当前上游情况，AX6 的 ImmortalWrt 默认 feeds 和 LiBwrt 的 25.12 feeds 均提供两者，直接使用上游；AX6000 的 24.10 feeds 提供程序但缺少 LuCI 插件，因此只补充自定义 LuCI。判断依据是实际拉取的源码，不按设备名写死。上游与自定义 LuCI 的界面、服务及配置文件名称不同，从旧自定义版本升级到上游版本后需检查 AdGuard Home 设置。
+
+固件不再预装 iStoreX、iStore 商店、QuickStart 和 Lucky，也不再从 `custom_feed` 同步这些插件及 `taskd`、`luci-lib-taskd`、`luci-lib-xterm`。对应的更新脚本、兼容补丁、Lucky 本地二进制包及其额外升级备份目录已移除。其他插件仍需的通用依赖由 Kconfig 正常解析，例如 wechatpush 的磁盘信息检测仍会选择 `lsblk`、`smartmontools` 和 `smartmontools-drivedb`。
+
+公共配置同时禁用 SmartDNS、MosDNS、PBR、EasyTier（含额外 Web 控制台）和独立 WireGuard 组件（LuCI 界面、工具及内核模块）。相关自定义源码同步、补丁和安装检查已清理，包括 MosDNS 的 `geo2txt`、PBR 的 CMCC 规则以及 EasyTier 的额外备份目录。开机脚本会清理旧固件遗留的 WireGuard watchdog 定时任务。AdGuard Home、Passwall、ZeroTier 及它们仍需要的通用依赖继续保留。
+
+CoreMark 基准测试工具也已禁用，其专属优化、多线程配置和构建修正已移除。
 
 ## 8. 项目结构说明
 
@@ -123,7 +139,7 @@ https://github.com/kenzok8/small-package.git
 - `wrt_core/deconfig/`：设备和共享默认配置 `.config`。
 - `wrt_core/deconfig/fragments/`：可组合配置片段。
 - `wrt_core/modules/`：模块化脚本，包括仓库准备、网络重试、feeds/custom_feed、源码修正、LuCI 修正、服务修正、验证、Docker、CUPS 等静态职责模块。
-- `wrt_core/patches/`：补丁、默认设置、Wi-Fi 初始化、NSS 诊断、PBR 规则和其他构建时注入文件。
+- `wrt_core/patches/`：补丁、默认设置、Wi-Fi 初始化、NSS 诊断和其他构建时注入文件。
 
 ## 9. OAF（应用过滤）功能使用说明
 
