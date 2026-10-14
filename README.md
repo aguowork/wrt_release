@@ -42,6 +42,8 @@ cd wrt_release
 
 编译完成后，固件保存在 `firmware/` 目录。
 
+三个设备的默认 LAN 地址统一为 `192.168.169.1`。首次初始化或恢复出厂设置时生效；保留配置升级会沿用原有 LAN 地址。
+
 需要调试时，在设备配置名后追加以下参数：
 
 | 参数 | 用途 |
@@ -58,7 +60,6 @@ cd wrt_release
 | --- | --- |
 | `proxy` | Passwall |
 | `daed` | 大鹅 Dashboard（已集成 dae） |
-| `docker_deps` | 预置在路由器上手动安装 Docker 所需的依赖 |
 
 ```bash
 # 编入 Passwall
@@ -71,6 +72,8 @@ ADD_CONFIG_FRAGMENTS=daed ./build.sh redmi_ax6000_immwrt
 AX6 默认加载平台片段 `nss`，建议保留；AX6000 默认不加载任何片段。可用 `REMOVE_CONFIG_FRAGMENTS` 排除片段，但不会撤销设备或公共配置中已有的选项。
 
 大鹅需要上游 feeds 和内核支持；可先用 `debug` 检查生成的 `.config`。同时编入 Passwall 和大鹅时，避免两者同时接管相同流量。
+
+面向资源有限的路由器，固件不预装 Docker、Dockerman 及容器运行时，也不预置 Docker 专用依赖。`container` / `container_debug` 使用的是编译主机上的 Docker，不会因此在路由器固件中安装 Docker。
 
 ## 5. GitHub Actions 编译
 

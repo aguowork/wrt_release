@@ -24,7 +24,7 @@ FEEDS_CONF="feeds.conf.default"
 GOLANG_REPO="https://github.com/sbwml/packages_lang_golang"
 GOLANG_BRANCH="26.x"
 THEME_SET="argon"
-LAN_ADDR="192.168.31.1"
+LAN_ADDR="192.168.169.1"
 
 SCRIPT_DIR=$(cd $(dirname $0) && pwd)
 BASE_PATH=${BASE_PATH:-$SCRIPT_DIR}
@@ -35,7 +35,6 @@ source "$SCRIPT_DIR/modules/repo.sh"
 source "$SCRIPT_DIR/modules/feeds.sh"
 source "$SCRIPT_DIR/modules/custom_feed.sh"
 source "$SCRIPT_DIR/modules/verify.sh"
-source "$SCRIPT_DIR/modules/docker.sh"
 source "$SCRIPT_DIR/modules/cups.sh"
 source "$SCRIPT_DIR/modules/feed_source_fixes.sh"
 source "$SCRIPT_DIR/modules/package_source_updates.sh"
@@ -98,7 +97,6 @@ stage_pre_install_source_fixes() {
     fix_rust_compile_error
     update_mwan3_fw4
     update_diskman
-    update_dockerman
     set_nginx_default_config
     update_uwsgi_limit_as
     update_argon
@@ -118,7 +116,6 @@ stage_post_install_package_fixes() {
     # 这里处理已安装到 package/feeds/* 的包和最终一致性检查。
     verify_custom_feed_installed_paths
     verify_adguardhome_installed_paths
-    docker_stack_sync_nftables_compat "$BUILD_DIR" "0"
     fix_cups_libcups_avahi_depends
     update_script_priority
     update_geoip
