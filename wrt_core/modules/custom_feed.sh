@@ -171,6 +171,7 @@ install_custom_feed() {
         luci-app-passwall nikki luci-app-nikki mihomo-meta
         open-app-filter luci-app-oaf
         luci-app-emmc-health
+        ddnsto luci-app-ddnsto
     )
     local custom_feed_sources=()
     local missing_feed_dirs=()
@@ -202,6 +203,7 @@ install_custom_feed() {
         "kenzok8/small-package|https://github.com/kenzok8/small-package.git||${base_custom_feed_packages[*]}"
         "Openwrt-Passwall/openwrt-passwall|https://github.com/Openwrt-Passwall/openwrt-passwall.git|main|luci-app-passwall"
         "nikkinikki-org/OpenWrt-nikki|https://github.com/nikkinikki-org/OpenWrt-nikki.git|main|nikki luci-app-nikki mihomo-meta"
+        "linkease/ddnsto-openwrt-package|https://github.com/linkease/ddnsto-openwrt-package.git|main|ddnsto luci-app-ddnsto"
     )
 
     feeds_path=$(get_feeds_path)

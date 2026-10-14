@@ -8,6 +8,7 @@ verify_custom_feed_installed_paths() {
     local required_package_dirs=(
         v2ray-geodata
         luci-app-passwall nikki luci-app-nikki mihomo-meta luci-app-emmc-health
+        ddnsto luci-app-ddnsto
     )
     local missing_package_dirs=()
 

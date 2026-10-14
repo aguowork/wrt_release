@@ -1,12 +1,12 @@
-name: Release WRT
-run-name: Release - ${{ inputs.model }}
+name: WRT 固件发布
+run-name: 发布固件 - ${{ inputs.model }}
 
 on:
   workflow_dispatch:
     inputs:
       model:
         required: true
-        description: Device Model
+        description: 设备型号
         type: choice
         default: redmi_ax6000_immwrt
         options:
@@ -15,25 +15,24 @@ on:
           - redmi_ax6000_immwrt
       add_fragments:
         required: false
-        description: Add config fragments, comma separated
+        description: 追加配置片段（逗号分隔，可留空）
         default: ""
       remove_fragments:
         required: false
-        description: Remove default config fragments, comma separated
+        description: 排除配置片段（逗号分隔，可留空）
         default: ""
-
-env:
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   build:
-    strategy:
-      matrix:
-        os: [ubuntu-24.04]
-    runs-on: ${{ matrix.os }}
+    name: 编译固件
+    permissions:
+      contents: read
+    outputs:
+      release_tag: ${{ steps.build_metadata.outputs.release_tag }}
+    runs-on: ubuntu-24.04
 
     steps:
-      - name: Free Disk Space
+      - name: 清理磁盘空间
         run: |
           sudo rm -rf /usr/local/lib/android || true
           sudo rm -rf /usr/share/dotnet || true
@@ -46,7 +45,7 @@ jobs:
           sudo -E apt-get clean || true
           df -hT
 
-      - name: Build System Setup
+      - name: 配置编译环境
         run: |
           sudo bash -c 'bash <(curl -sL https://build-scripts.immortalwrt.org/init_build_environment.sh)'
           sudo -E apt -yqq install dos2unix
@@ -56,46 +55,34 @@ jobs:
           sudo -E apt -yqq clean
           sudo -E systemctl daemon-reload
 
-      - name: Checkout
+      - name: 检出仓库
         uses: actions/checkout@v7.0.0
 
-      - name: Set Build Date and Timezone
+      - name: 设置构建信息
+        id: build_metadata
         env:
-          RAW_ADD_CONFIG_FRAGMENTS: ${{ inputs.add_fragments }}
-          RAW_REMOVE_CONFIG_FRAGMENTS: ${{ inputs.remove_fragments }}
+          DEVICE_MODEL: ${{ inputs.model }}
         run: |
           sudo -E timedatectl set-timezone "Asia/Shanghai"
-          export BUILD_DATE=$(TZ=UTC-8 date +"%y.%m.%d_%H.%M.%S")
-          echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_ENV
-          sanitize_cache_key_part() { printf '%s' "$1" | tr -c 'A-Za-z0-9_.-' '_'; }
-          echo "ADD_CONFIG_FRAGMENTS_KEY=$(sanitize_cache_key_part "$RAW_ADD_CONFIG_FRAGMENTS")" >> $GITHUB_ENV
-          echo "REMOVE_CONFIG_FRAGMENTS_KEY=$(sanitize_cache_key_part "$RAW_REMOVE_CONFIG_FRAGMENTS")" >> $GITHUB_ENV
-          export BUILD_SRC=$(awk -F"=" '/REPO_URL/ {print $NF}' "./wrt_core/compilecfg/${{ inputs.model }}.ini")
-          echo "BUILD_SRC=$BUILD_SRC" >> $GITHUB_ENV
+          BUILD_DATE=$(TZ=Asia/Shanghai date +"%y.%m.%d_%H.%M.%S")
+          echo "BUILD_DATE=$BUILD_DATE" >> "$GITHUB_ENV"
+          echo "release_tag=${BUILD_DATE}_${DEVICE_MODEL}" >> "$GITHUB_OUTPUT"
+          BUILD_SRC=$(awk -F"=" '/REPO_URL/ {print $NF}' "./wrt_core/compilecfg/${DEVICE_MODEL}.ini")
+          echo "BUILD_SRC=$BUILD_SRC" >> "$GITHUB_ENV"
 
-      - name: Pre Clone
+      - name: 预克隆源码
         run: ./wrt_core/pre_clone_action.sh ${{ inputs.model }}
 
-      - name: Cache Dependencies
+      # Cache compiler results only; let GitHub evict old entries automatically.
+      - name: 缓存编译结果
         uses: actions/cache@v6.1.0
         with:
-          path: |
-            ./action_build/.ccache
-            ./action_build/staging_dir
-          key: ${{ matrix.os }}-${{ inputs.model }}-${{ hashFiles('**/repo_flag') }}-${{ env.ADD_CONFIG_FRAGMENTS_KEY }}-${{ env.REMOVE_CONFIG_FRAGMENTS_KEY }}-${{ env.BUILD_DATE }}
+          path: ./action_build/.ccache
+          key: ccache-${{ runner.os }}-${{ runner.arch }}-${{ inputs.model }}-${{ hashFiles('repo_flag') }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            ${{ matrix.os }}-${{ inputs.model }}-${{ hashFiles('**/repo_flag') }}-${{ env.ADD_CONFIG_FRAGMENTS_KEY }}-${{ env.REMOVE_CONFIG_FRAGMENTS_KEY }}-
-            ${{ matrix.os }}-${{ inputs.model }}-${{ hashFiles('**/repo_flag') }}-
+            ccache-${{ runner.os }}-${{ runner.arch }}-${{ inputs.model }}-${{ hashFiles('repo_flag') }}-
 
-      - name: Refresh the cache
-        run: |
-          if [ -d "./action_build/staging_dir" ]; then
-            find "./action_build/staging_dir" -type d -name "stamp" -not -path "*target*" | while read -r dir; do
-                find "$dir" -type f -exec touch {} +
-            done
-          fi
-
-      - name: Machine Information (Pre-build)
+      - name: 查看编译前机器信息
         run: |
           echo "=============== Pre-build Snapshot ==============="
           echo "Time: $(date '+%F %T %Z')"
@@ -122,29 +109,19 @@ jobs:
           du -sh ./firmware 2>/dev/null || true
           echo "=================================================="
 
-      - name: Build Firmware
+      - name: 编译固件
         env:
           ADD_CONFIG_FRAGMENTS: ${{ inputs.add_fragments }}
           REMOVE_CONFIG_FRAGMENTS: ${{ inputs.remove_fragments }}
+          CCACHE_MAXSIZE: 2G
         run: ./build.sh ${{ inputs.model }}
 
-      - name: Get Kernel Verion
+      - name: 获取内核版本
         run: |
           # 获取内核版本
           echo "KVER=$(grep -oP "^kernel.*" ./firmware/*.manifest | grep -oP "[4-6]\.[0-9]{1,3}\.[0-9]{1,3}")" >> $GITHUB_ENV
 
-      - name: Delete Old Cache
-        run: |
-          # 获取缓存列表并删除
-          gh cache list --key ${{ matrix.os }}-${{ inputs.model }}-${{ hashFiles('**/repo_flag') }}- --json key --jq '.[] | .key' | while read -r key; do
-            gh cache delete "$key"
-          done
-          # 输出缓存状态
-          echo "========cache status========"
-          echo "ccache: $(du -sh ./action_build/.ccache | cut -f 1)"
-          echo "staging: $(du -sh ./action_build/staging_dir | cut -f 1)"
-
-      - name: Machine Information (Post-build)
+      - name: 查看编译后机器信息
         run: |
           echo "=============== Post-build Snapshot ==============="
           echo "Time: $(date '+%F %T %Z')"
@@ -170,7 +147,7 @@ jobs:
           echo "Firmware file count: $(ls -1 ./firmware 2>/dev/null | wc -l)"
           echo "===================================================="
 
-      - name: Package Kmods
+      - name: 打包内核模块
         run: |
           if [ ! -d "./action_build/bin" ]; then
             echo "kmod source directory not found: ./action_build/bin" >&2
@@ -197,7 +174,7 @@ jobs:
           echo "KMOD_ARCHIVE=$archive_name" >> "$GITHUB_ENV"
           echo "Packaged $kmod_count kmod packages into $archive_name"
 
-      - name: Prepare Release Body
+      - name: 生成发布说明
         run: |
           echo "云编译发布" > release_body.txt
           echo "源码：${{ env.BUILD_SRC }}" >> release_body.txt
@@ -208,10 +185,35 @@ jobs:
           echo "插件：" >> release_body.txt
           echo "$(grep -oP "luci-app(-[a-zA-Z0-9]{1,}){1,}" ./firmware/*.manifest | awk -F":" '{print $NF}')"  >> release_body.txt
 
-      - name: Release Firmware
+      - name: 上传发布文件
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: release-files
+          path: |
+            ./firmware/*.*
+            ./kmods_*.tar.gz
+            ./release_body.txt
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  release:
+    name: 发布固件
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: 下载发布文件
+        uses: actions/download-artifact@v8.0.2
+        with:
+          name: release-files
+          path: .
+
+      - name: 发布固件
         uses: softprops/action-gh-release@v3.0.1
         with:
-          tag_name: ${{ env.BUILD_DATE }}_${{ inputs.model }}
+          tag_name: ${{ needs.build.outputs.release_tag }}
           files: |
             ./firmware/*.*
             ./kmods_*.tar.gz
