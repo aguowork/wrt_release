@@ -50,6 +50,49 @@ remove_unwanted_packages() {
 }
 
 
+prepare_wechatpush() {
+    local app_dir="$BUILD_DIR/feeds/luci/applications/luci-app-wechatpush"
+    local app_repo="https://github.com/aguowork/luci-app-wechatpush.git"
+    local wrtbwmon_repo="https://github.com/brvphoenix/wrtbwmon.git"
+    local wrtbwmon_tmp="$BUILD_DIR/package/wrtbwmon-source"
+    local wrtbwmon_dir="$BUILD_DIR/package/wrtbwmon"
+    local upstream_wrtbwmon_dir="$BUILD_DIR/feeds/packages/net/wrtbwmon"
+
+    if [ ! -d "$(dirname "$app_dir")" ]; then
+        echo "LuCI applications feed not found: $(dirname "$app_dir")" >&2
+        return 1
+    fi
+
+    echo "正在替换 luci-app-wechatpush 为 aguowork 版本..."
+    rm -rf "$app_dir"
+    if ! git_retry clone --depth 1 "$app_repo" "$app_dir"; then
+        echo "错误：从 $app_repo 克隆 luci-app-wechatpush 失败" >&2
+        return 1
+    fi
+
+    echo "正在添加 wechatpush 流量监控依赖 wrtbwmon..."
+    rm -rf "$upstream_wrtbwmon_dir" "$wrtbwmon_tmp" "$wrtbwmon_dir"
+    if ! git_retry clone --depth 1 "$wrtbwmon_repo" "$wrtbwmon_tmp"; then
+        echo "错误：从 $wrtbwmon_repo 克隆 wrtbwmon 失败" >&2
+        rm -rf "$wrtbwmon_tmp"
+        return 1
+    fi
+
+    if [ ! -f "$wrtbwmon_tmp/wrtbwmon/Makefile" ]; then
+        echo "错误：wrtbwmon 包目录不存在：$wrtbwmon_tmp/wrtbwmon" >&2
+        rm -rf "$wrtbwmon_tmp"
+        return 1
+    fi
+
+    if ! mv "$wrtbwmon_tmp/wrtbwmon" "$wrtbwmon_dir"; then
+        echo "错误：无法安装 wrtbwmon 包到 $wrtbwmon_dir" >&2
+        rm -rf "$wrtbwmon_tmp"
+        return 1
+    fi
+    rm -rf "$wrtbwmon_tmp"
+}
+
+
 update_homeproxy() {
     local repo_url="https://github.com/immortalwrt/homeproxy.git"
     local target_dir="$(get_custom_feed_worktree_dir)/luci-app-homeproxy"

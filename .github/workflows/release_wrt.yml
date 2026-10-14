@@ -8,11 +8,11 @@ on:
         required: true
         description: Device Model
         type: choice
-        default: redmi_ax6000_immwrt21
+        default: redmi_ax6000_immwrt
         options:
           - redmi_ax6_immwrt
           - redmi_ax6_libwrt
-          - redmi_ax6000_immwrt21
+          - redmi_ax6000_immwrt
       add_fragments:
         required: false
         description: Add config fragments, comma separated

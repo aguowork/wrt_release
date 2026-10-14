@@ -69,13 +69,13 @@ GitHub Actions 的手动构建也提供 `add_fragments` 与 `remove_fragments` �
 | --- | --- | --- |
 | 红米 | AX6 | `redmi_ax6_immwrt` |
 | 红米 | AX6 - LiBwrt | `redmi_ax6_libwrt` |
-| 红米 | AX6000 | `redmi_ax6000_immwrt21` |
+| 红米 | AX6000 | `redmi_ax6000_immwrt` |
 
 示例：
 
 ```bash
 ./build.sh redmi_ax6_immwrt
-./build.sh redmi_ax6000_immwrt21
+./build.sh redmi_ax6000_immwrt
 ./build.sh redmi_ax6_libwrt container
 ```
 
