@@ -44,17 +44,17 @@ cd wrt_release
 
 | 模式 | 命令示例 | 说明 |
 | --- | --- | --- |
-| 默认 | `./build.sh x64_immwrt` | 拉取源码、应用配置、下载依赖并完整编译固件。 |
-| `debug` | `./build.sh x64_immwrt debug` | 执行到 `make defconfig` 后停止，用于检查配置，不产出固件。 |
-| `container` | `./build.sh x64_immwrt container` | 使用 Docker 容器执行完整构建，减少本机环境差异。 |
-| `container_debug` | `./build.sh x64_immwrt container_debug` | 在 Docker 容器中执行 debug 流程并进入交互 shell。 |
-| `config_preview` | `./build.sh x64_immwrt config_preview` | 只预览配置片段组合，不拉取源码、不写构建目录。 |
+| 默认 | `./build.sh redmi_ax6_immwrt` | 拉取源码、应用配置、下载依赖并完整编译固件。 |
+| `debug` | `./build.sh redmi_ax6_immwrt debug` | 执行到 `make defconfig` 后停止，用于检查配置，不产出固件。 |
+| `container` | `./build.sh redmi_ax6_immwrt container` | 使用 Docker 容器执行完整构建，减少本机环境差异。 |
+| `container_debug` | `./build.sh redmi_ax6_immwrt container_debug` | 在 Docker 容器中执行 debug 流程并进入交互 shell。 |
+| `config_preview` | `./build.sh redmi_ax6_immwrt config_preview` | 只预览配置片段组合，不拉取源码、不写构建目录。 |
 
 可通过环境变量临时追加或移除配置片段：
 
 ```bash
-ADD_CONFIG_FRAGMENTS=docker_deps ./build.sh gemtek_w1701k_immwrt config_preview
-REMOVE_CONFIG_FRAGMENTS=proxy ./build.sh x64_immwrt config_preview
+ADD_CONFIG_FRAGMENTS=docker_deps ./build.sh redmi_ax6_immwrt config_preview
+REMOVE_CONFIG_FRAGMENTS=proxy ./build.sh redmi_ax6_immwrt config_preview
 ```
 
 GitHub Actions 的手动构建也提供 `add_fragments` 与 `remove_fragments` 输入项，语义与上述环境变量一致。
@@ -67,30 +67,15 @@ GitHub Actions 的手动构建也提供 `add_fragments` 与 `remove_fragments` �
 
 | 厂商 / 平台 | 设备 | 配置名 |
 | --- | --- | --- |
-| 京东云 | 雅典娜(02)、亚瑟(01)、太乙(07)、AX5(JDC版) | `jdcloud_ipq60xx_immwrt` |
-| 京东云 | 雅典娜(02)、亚瑟(01)、太乙(07)、AX5(JDC版) - LiBwrt | `jdcloud_ipq60xx_libwrt` |
-| 京东云 | 百里 / AX6000 | `jdcloud_ax6000_immwrt` |
-| 阿里云 | AP8220 | `aliyun_ap8220_immwrt` |
-| 阿里云 | AP8220 - LiBwrt | `aliyun_ap8220_libwrt` |
-| Linksys | MX4200v1、MX4200v2、MX4300 | `linksys_mx4x00_immwrt` |
-| Link | NN6000v2 | `link_nn6000v2_immwrt` |
-| 奇虎 | 360v6 | `qihoo_360v6_immwrt` |
-| 红米 | AX5 | `redmi_ax5_immwrt` |
 | 红米 | AX6 | `redmi_ax6_immwrt` |
 | 红米 | AX6 - LiBwrt | `redmi_ax6_libwrt` |
 | 红米 | AX6000 | `redmi_ax6000_immwrt21` |
-| CMCC（中国移动） | RAX3000M | `cmcc_rax3000m_immwrt` |
-| 斐讯 | N1 | `n1_immwrt` |
-| 兆能 | M2 | `zn_m2_immwrt` |
-| 兆能 | M2 - LiBwrt | `zn_m2_libwrt` |
-| Gemtek | W1701K | `gemtek_w1701k_immwrt` |
-| x86 | X64 | `x64_immwrt` |
 
 示例：
 
 ```bash
-./build.sh jdcloud_ipq60xx_immwrt
-./build.sh aliyun_ap8220_libwrt
+./build.sh redmi_ax6_immwrt
+./build.sh redmi_ax6000_immwrt21
 ./build.sh redmi_ax6_libwrt container
 ```
 
